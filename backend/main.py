@@ -18,17 +18,23 @@ from transformers import pipeline
 # ---------------------------------------------------------------------------
 # PATHS
 # ---------------------------------------------------------------------------
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MODEL_DIR    = Path(__file__).resolve().parent / "model"
+PROJECT_ROOT  = Path(__file__).resolve().parent.parent
 FRONTEND_HTML = PROJECT_ROOT / "frontend" / "index.html"
 
 # ---------------------------------------------------------------------------
 # LOAD MODEL ONCE AT STARTUP
 # ---------------------------------------------------------------------------
-print(f"[startup] Loading model from: {MODEL_DIR}")
+# The model is hosted on Hugging Face Hub.
+# On first run it downloads automatically (~500 MB) and is cached locally.
+# Subsequent runs load instantly from the cache (no internet needed).
+HF_MODEL_ID = "mohammedlahan/review-sentiment-model"
+
+print(f"[startup] Loading model from Hugging Face: {HF_MODEL_ID}")
+print("[startup] First run will download the model (~500 MB) — please wait…")
+
 classifier = pipeline(
     "text-classification",
-    model=str(MODEL_DIR),
+    model=HF_MODEL_ID,
     top_k=None,   # return all label scores, not just the top one
 )
 print("[startup] Model loaded successfully ✓")
