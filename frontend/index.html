@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Review Analyzer</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #1a365d 0%, #2d5a9e 100%); color: white; padding: 1.5rem 2rem; text-align: center; }
+    header h1 { font-size: 1.8rem; }
+    header p  { margin-top: 0.3rem; opacity: 0.85; font-size: 0.95rem; }
+    nav { display: flex; justify-content: center; gap: 0.5rem; padding: 1rem; background: white; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+    nav button { padding: 0.5rem 1.4rem; border: 2px solid #2d5a9e; border-radius: 999px; background: white; color: #2d5a9e; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    nav button.active, nav button:hover { background: #2d5a9e; color: white; }
+    section { display: none; padding: 1.5rem; max-width: 860px; margin: 0 auto; }
+    section.visible { display: block; }
+    .card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 6px rgba(0,0,0,0.08); margin-bottom: 1.2rem; }
+    .card h2 { font-size: 1.1rem; color: #2d5a9e; margin-bottom: 1rem; }
+    textarea { width: 100%; padding: 0.75rem; border: 1.5px solid #cbd5e0; border-radius: 8px; font-size: 0.95rem; resize: vertical; transition: border-color 0.2s; }
+    textarea:focus { outline: none; border-color: #2d5a9e; }
+    .btn { display: inline-block; padding: 0.6rem 1.5rem; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.1s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #2d5a9e; color: white; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-example { background: #edf2fb; color: #2d5a9e; font-size: 0.82rem; padding: 0.4rem 0.9rem; margin: 0.25rem 0.2rem 0 0; }
+    .btn-example:hover { background: #d6e4f7; }
+    .badge { display: inline-block; padding: 0.3rem 1rem; border-radius: 999px; font-weight: 700; font-size: 1rem; text-transform: capitalize; }
+    .badge-positive { background: #c6f6d5; color: #22543d; }
+    .badge-neutral  { background: #fefcbf; color: #744210; }
+    .badge-negative { background: #fed7d7; color: #742a2a; }
+    .bar-wrap { margin: 0.6rem 0; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 3px; text-transform: capitalize; }
+    .bar-track { background: #e2e8f0; border-radius: 999px; height: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+    .bar-positive { background: #48bb78; } .bar-neutral { background: #f6ad55; } .bar-negative { background: #fc8181; }
+    .file-drop { border: 2px dashed #cbd5e0; border-radius: 10px; padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+    .file-drop:hover { border-color: #2d5a9e; }
+    .file-drop input { display: none; }
+    .file-drop p { color: #718096; font-size: 0.9rem; margin-top: 0.4rem; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: #ebf4ff; padding: 0.6rem 0.8rem; text-align: left; font-weight: 600; white-space: nowrap; }
+    td { padding: 0.55rem 0.8rem; border-top: 1px solid #e2e8f0; vertical-align: top; }
+    tr:hover td { background: #f7fafc; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; margin-bottom: 1rem; }
+    .stat-card { background: #ebf4ff; border-radius: 10px; padding: 0.9rem; text-align: center; }
+    .stat-card .num { font-size: 1.9rem; font-weight: 700; color: #2d5a9e; }
+    .stat-card .lbl { font-size: 0.75rem; color: #4a5568; margin-top: 2px; }
+    .stat-card.neg { background: #fff5f5; } .stat-card.neg .num { color: #c53030; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #cbd5e0; border-top-color: #2d5a9e; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 0.4rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .alert { padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem; margin-top: 0.8rem; }
+    .alert-error { background: #fff5f5; border-left: 4px solid #fc8181; color: #742a2a; }
+    .about-block { line-height: 1.7; }
+    .about-block h3 { color: #2d5a9e; margin: 1rem 0 0.4rem; }
+    .about-block ul { padding-left: 1.3rem; }
+    .about-block li { margin-bottom: 0.3rem; }
+    .accuracy-box { background: #f0fff4; border: 1.5px solid #9ae6b4; border-radius: 8px; padding: 0.8rem 1rem; margin-top: 0.8rem; font-size: 0.95rem; }
+    @media (max-width: 600px) { header h1 { font-size: 1.3rem; } .card { padding: 1rem; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔍 Customer Review Analyzer</h1>
+  <p>Powered by a fine-tuned RoBERTa model — negative · neutral · positive</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('analyzer', this)">📝 Analyzer</button>
+  <button onclick="showTab('batch', this)">📂 Batch Dashboard</button>
+  <button onclick="showTab('about', this)">ℹ️ About the Model</button>
+</nav>
+
+<!-- TAB 1: SINGLE ANALYZER -->
+<section id="tab-analyzer" class="visible">
+  <div class="card">
+    <h2>Analyze a Review</h2>
+    <textarea id="reviewText" rows="4" placeholder="Type or paste a customer review here…"></textarea>
+    <div>
+      <button class="btn btn-example" onclick="fillExample('The product quality is excellent and arrived on time!')">😊 Positive example</button>
+      <button class="btn btn-example" onclick="fillExample('It is okay. Nothing special, does the job.')">😐 Neutral example</button>
+      <button class="btn btn-example" onclick="fillExample('Terrible experience. Broken on arrival and no support.')">😠 Negative example</button>
+    </div>
+    <div style="margin-top:1rem;">
+      <button class="btn btn-primary" onclick="analyzeReview()">Analyze ➤</button>
+      <small style="color:#718096; margin-left:0.8rem;">or press Ctrl+Enter</small>
+    </div>
+  </div>
+  <div class="card" id="resultCard" style="display:none;">
+    <h2>Result</h2>
+    <div id="analyzeLoading" style="display:none;"><span class="spinner"></span> Analyzing…</div>
+    <div id="analyzeError" class="alert alert-error" style="display:none;"></div>
+    <div id="analyzeResult" style="display:none;">
+      <p style="margin-bottom:0.7rem;">
+        Sentiment: <span id="sentimentBadge" class="badge"></span>
+        &nbsp;|&nbsp; Confidence: <strong id="confidenceText"></strong>
+      </p>
+      <div id="barsContainer"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TAB 2: BATCH DASHBOARD -->
+<section id="tab-batch">
+  <div class="card">
+    <h2>Upload CSV File</h2>
+    <p style="font-size:0.88rem; color:#4a5568; margin-bottom:0.9rem;">
+      Your CSV must have a column named <code>review</code>. Maximum 500 rows.
+    </p>
+    <div class="file-drop" onclick="document.getElementById('csvInput').click()">
+      <input type="file" id="csvInput" accept=".csv" onchange="handleFileSelect(this)" />
+      <div style="font-size:2rem;">📁</div>
+      <strong id="dropLabel">Click to choose a CSV file</strong>
+      <p>Accepts .csv files up to 500 rows</p>
+    </div>
+    <div id="batchError" class="alert alert-error" style="display:none;"></div>
+    <button class="btn btn-primary" style="margin-top:1rem;" onclick="uploadBatch()">Upload &amp; Analyze ➤</button>
+  </div>
+  <div id="batchLoading" class="card" style="display:none; text-align:center;">
+    <span class="spinner"></span> Analyzing all rows, please wait…
+  </div>
+  <div id="batchResults" style="display:none;">
+    <div class="card">
+      <h2>Summary</h2>
+      <div class="summary-grid">
+        <div class="stat-card"><div class="num" id="sumTotal">-</div><div class="lbl">Total reviews</div></div>
+        <div class="stat-card"><div class="num" id="sumPositive" style="color:#22543d;">-</div><div class="lbl">Positive</div></div>
+        <div class="stat-card"><div class="num" id="sumNeutral" style="color:#744210;">-</div><div class="lbl">Neutral</div></div>
+        <div class="stat-card neg"><div class="num" id="sumNegative">-</div><div class="lbl">Negative</div></div>
+        <div class="stat-card neg"><div class="num" id="sumPctNeg">-%</div><div class="lbl">% Negative</div></div>
+      </div>
+      <canvas id="sentimentChart" height="120"></canvas>
+    </div>
+    <div class="card" id="topNegCard" style="display:none;">
+      <h2>🔴 Top 5 Most Confident Negative Reviews</h2>
+      <div class="table-wrap">
+        <table id="topNegTable">
+          <thead><tr><th>#</th><th>Review</th><th>Confidence</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>All Results</h2>
+      <div class="table-wrap">
+        <table id="resultsTable">
+          <thead><tr><th>Row</th><th>Review</th><th>Sentiment</th><th>Confidence</th><th>Neg</th><th>Neu</th><th>Pos</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TAB 3: ABOUT -->
+<section id="tab-about">
+  <div class="card about-block">
+    <h2>About the Model</h2>
+    <h3>Architecture</h3>
+    <p>Fine-tuned <strong>RoBERTa-base</strong> (12 layers, 768 hidden dims, ~125 M parameters) for 3-class sentiment: <strong>negative</strong>, <strong>neutral</strong>, <strong>positive</strong>.</p>
+    <h3>Training</h3>
+    <ul>
+      <li>Base: <code>roberta-base</code> from Hugging Face</li>
+      <li>Fine-tuned on labelled customer reviews</li>
+      <li>Inference: truncated to 128 tokens</li>
+    </ul>
+    <h3>Test-Set Performance</h3>
+    <div class="accuracy-box">
+      📊 Overall accuracy: <strong>[fill in your test-set accuracy here, e.g. 87%]</strong><br/>
+      <small>Run your evaluation script on the held-out test split and paste the result here.</small>
+    </div>
+    <h3>Known Limitations</h3>
+    <ul>
+      <li><strong>Neutral is hardest</strong> — mixed reviews often get mis-classified</li>
+      <li><strong>Sarcasm is missed</strong> — "Oh great, another broken charger" may read as positive</li>
+      <li><strong>Short reviews</strong> — single words or emojis give the model little context</li>
+      <li><strong>128-token cap</strong> — very long reviews are silently truncated</li>
+    </ul>
+  </div>
+</section>
+
+<script>
+  const API_BASE = '';
+  let chartInstance = null;
+  let selectedFile  = null;
+
+  function showTab(name, btn) {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('visible'));
+    document.getElementById('tab-' + name).classList.add('visible');
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function fillExample(text) { document.getElementById('reviewText').value = text; }
+
+  async function analyzeReview() {
+    const text    = document.getElementById('reviewText').value.trim();
+    const card    = document.getElementById('resultCard');
+    const loading = document.getElementById('analyzeLoading');
+    const error   = document.getElementById('analyzeError');
+    const result  = document.getElementById('analyzeResult');
+    card.style.display = 'block';
+    loading.style.display = 'block';
+    error.style.display = result.style.display = 'none';
+    try {
+      const resp = await fetch(API_BASE + '/api/analyze', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text})
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || 'Server error');
+      const badge = document.getElementById('sentimentBadge');
+      badge.textContent = data.sentiment;
+      badge.className   = 'badge badge-' + data.sentiment;
+      document.getElementById('confidenceText').textContent = (data.confidence*100).toFixed(1) + '%';
+      const container = document.getElementById('barsContainer');
+      container.innerHTML = '';
+      ['negative','neutral','positive'].forEach(label => {
+        const p = ((data.scores[label]||0)*100).toFixed(1);
+        container.innerHTML += `<div class="bar-wrap"><div class="bar-label"><span>${label}</span><span>${p}%</span></div><div class="bar-track"><div class="bar-fill bar-${label}" style="width:${p}%"></div></div></div>`;
+      });
+      result.style.display = 'block';
+    } catch(err) {
+      error.textContent = '⚠️ ' + err.message;
+      error.style.display = 'block';
+    } finally { loading.style.display = 'none'; }
+  }
+
+  document.getElementById('reviewText').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') analyzeReview();
+  });
+
+  function handleFileSelect(input) {
+    selectedFile = input.files[0];
+    document.getElementById('dropLabel').textContent = selectedFile ? '📄 ' + selectedFile.name : 'Click to choose a CSV file';
+  }
+
+  async function uploadBatch() {
+    const errorDiv   = document.getElementById('batchError');
+    const loadingDiv = document.getElementById('batchLoading');
+    const resultsDiv = document.getElementById('batchResults');
+    errorDiv.style.display = loadingDiv.style.display = resultsDiv.style.display = 'none';
+    if (!selectedFile) { errorDiv.textContent = '⚠️ Please select a CSV file first.'; errorDiv.style.display = 'block'; return; }
+    loadingDiv.style.display = 'block';
+    try {
+      const form = new FormData();
+      form.append('file', selectedFile);
+      const resp = await fetch(API_BASE + '/api/batch', {method:'POST', body:form});
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || 'Server error');
+      const s = data.summary;
+      document.getElementById('sumTotal').textContent    = s.total;
+      document.getElementById('sumPositive').textContent = s.counts.positive;
+      document.getElementById('sumNeutral').textContent  = s.counts.neutral;
+      document.getElementById('sumNegative').textContent = s.counts.negative;
+      document.getElementById('sumPctNeg').textContent   = s.pct_negative + '%';
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(document.getElementById('sentimentChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: ['Positive','Neutral','Negative'],
+                datasets: [{label:'Reviews', data:[s.counts.positive,s.counts.neutral,s.counts.negative],
+                            backgroundColor:['#48bb78','#f6ad55','#fc8181'], borderRadius:6}] },
+        options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1}}} }
+      });
+      const topCard = document.getElementById('topNegCard');
+      const topBody = document.querySelector('#topNegTable tbody');
+      topBody.innerHTML = '';
+      if (s.top_negatives && s.top_negatives.length > 0) {
+        s.top_negatives.forEach((r,i) => { topBody.innerHTML += `<tr><td>${i+1}</td><td>${esc(r.review)}</td><td>${(r.confidence*100).toFixed(1)}%</td></tr>`; });
+        topCard.style.display = 'block';
+      }
+      const tbody = document.querySelector('#resultsTable tbody');
+      tbody.innerHTML = '';
+      data.results.forEach(r => {
+        tbody.innerHTML += `<tr><td>${r.row}</td><td style="max-width:260px;word-break:break-word">${esc(r.review)}</td><td><span class="badge badge-${r.sentiment}">${r.sentiment}</span></td><td>${(r.confidence*100).toFixed(1)}%</td><td>${pct(r.scores.negative)}</td><td>${pct(r.scores.neutral)}</td><td>${pct(r.scores.positive)}</td></tr>`;
+      });
+      resultsDiv.style.display = 'block';
+    } catch(err) {
+      errorDiv.textContent = '⚠️ ' + err.message; errorDiv.style.display = 'block';
+    } finally { loadingDiv.style.display = 'none'; }
+  }
+
+  function pct(s) { return s !== undefined ? (s*100).toFixed(1)+'%' : '-'; }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

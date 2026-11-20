@@ -1,0 +1,7 @@
+# This file keeps the model/ folder tracked by Git.
+# Place your 5 model files here before running the server:
+#   config.json
+#   tokenizer.json
+#   tokenizer_config.json
+#   training_args.bin
+#   model.safetensors  (or download from HuggingFace Hub - see README)
